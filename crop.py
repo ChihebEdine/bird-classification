@@ -54,8 +54,8 @@ def get_bird_box(boxes, classes):
 
 
 def crop_bird(img_path, threshold):
-    img = Image.open(img_path) # Load the image
-    img = transforms.ToTensor()(img).to(device) # Apply the transform to the image
+    img = Image.open(img_path)
+    img = transforms.ToTensor()(img).to(device)
     pred_boxes, pred_class = predict_boxes(img, threshold)
     x, y, h, w = get_bird_box(pred_boxes, pred_class)
     img = transforms.functional.crop(img, x,y , h, w)
