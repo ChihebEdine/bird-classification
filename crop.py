@@ -81,7 +81,7 @@ if __name__ == '__main__':
             create_folder(os.path.join(root_target, subroot, category))
             images = os.listdir(os.path.join(root_source, subroot, category))
             print(f"transfering : {subroot}/{category}")
-            for image in tqdm.notebook.tqdm(images):
+            for image in tqdm.tqdm(images):
                 source_im_path = os.path.join(root_source, subroot, category, image)
                 target_im_path = os.path.join(root_target, subroot, category, image)
                 try:
