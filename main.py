@@ -11,12 +11,12 @@ from tqdm import tqdm
 parser = argparse.ArgumentParser(description='RecVis A3 training script')
 parser.add_argument('--data', type=str, default='bird_dataset', metavar='D',
                     help="folder where data is located. train_images/ and val_images/ need to be found in the folder")
-parser.add_argument('--batch-size', type=int, default=64, metavar='B',
-                    help='input batch size for training (default: 64)')
-parser.add_argument('--epochs', type=int, default=10, metavar='N',
-                    help='number of epochs to train (default: 10)')
-parser.add_argument('--lr', type=float, default=0.1, metavar='LR',
-                    help='learning rate (default: 0.01)')
+parser.add_argument('--batch-size', type=int, default=16, metavar='B',
+                    help='input batch size for training (default: 16)')
+parser.add_argument('--epochs', type=int, default=30, metavar='N',
+                    help='number of epochs to train (default: 30)')
+parser.add_argument('--lr', type=float, default=0.05, metavar='LR',
+                    help='learning rate (default: 0.05)')
 parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
                     help='SGD momentum (default: 0.5)')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
@@ -34,15 +34,13 @@ if not os.path.isdir(args.experiment):
     os.makedirs(args.experiment)
 
 # Data initialization and loading
-from data import data_transforms
+from data import data_transforms_train, data_transforms_test
 
 train_loader = torch.utils.data.DataLoader(
-    datasets.ImageFolder(args.data + '/train_images',
-                         transform=data_transforms),
+    datasets.ImageFolder(args.data + '/train_images', transform=data_transforms_train),
     batch_size=args.batch_size, shuffle=True, num_workers=1)
 val_loader = torch.utils.data.DataLoader(
-    datasets.ImageFolder(args.data + '/val_images',
-                         transform=data_transforms),
+    datasets.ImageFolder(args.data + '/val_images', transform=data_transforms_test),
     batch_size=args.batch_size, shuffle=False, num_workers=1)
 
 # Neural network and optimizer
@@ -56,8 +54,9 @@ else:
     print('Using CPU')
 
 optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
+scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[6,20], gamma=0.1)
 
-def train(epoch):
+def train(model, optimizer, epoch):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
         if use_cuda:
@@ -73,7 +72,7 @@ def train(epoch):
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader), loss.data.item()))
 
-def validation():
+def validation(model):
     model.eval()
     validation_loss = 0
     correct = 0
@@ -95,8 +94,10 @@ def validation():
 
 
 for epoch in range(1, args.epochs + 1):
-    train(epoch)
-    validation()
+    train(model, optimizer, epoch)
+    validation(model)
+    scheduler.step()
+
     model_file = args.experiment + '/model_' + str(epoch) + '.pth'
     torch.save(model.state_dict(), model_file)
     print('Saved model to ' + model_file + '. You can run `python evaluate.py --model ' + model_file + '` to generate the Kaggle formatted csv file\n')
